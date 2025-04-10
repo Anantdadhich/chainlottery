@@ -1,6 +1,6 @@
 # 🍉 Fruity Slice Token Game on Solana (Devnet)
 
-A fun, blockchain-integrated Fruit Ninja-style game built using React (JSX) and powered by the Solana blockchain. Players slash fruits to earn tokens based on their score. Tokens are distributed from a house wallet through a backend server using a secure claim system.
+A fun, blockchain-integrated Fruit Ninja-style game built using React (JSX) and powered by the Solana blockchain. Players slash fruits to earn tokens solana based on their score.
 
 ---
 
@@ -76,11 +76,6 @@ Handles:
 - ✅ `POST /api/login` — returns JWT token
 - ✅ `POST /api/transfer-tokens` — transfers SPL tokens to player’s wallet based on score
 
-Uses:
-- `@solana/web3.js` to interact with Devnet
-- JWT for session security
-- In-memory `specialrewardClaimed` for limited bonus rewards
-
 ---
 
 ## 🎮 Reward System
@@ -100,14 +95,12 @@ export const getSliceReward = (score) => {
 
 - Everything runs on **Solana Devnet**, no real SOL involved.
 - Make sure to fund your house wallet with devnet SOL using:
-```bash
-solana airdrop 2 <house_wallet_address> --url devnet
-```
+- there is error in claim rewards so anyone wants to contribute contribute there
+- In future we can add leaderboard logic proper auth where the user in month have good score according 
+ to leaderboard the user can win nft 
+- we will shift to mainnet due to cost issues or developer friendly i try to make it in devnet 
 
 ---
 
-## 📩 Contact
-Made by Anant — Full Stack Developer experimenting with blockchain gaming on Solana.
 
-Feel free to reach out or contribute!
 

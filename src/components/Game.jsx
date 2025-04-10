@@ -395,7 +395,6 @@ const GameBuild = ({ isWalletConnected = false, sendTransaction }) => {
     }
   };
 
-  // Entry fee transaction and game initiation
   const initgame = async () => {
     if (!isWalletConnected || !publicKey || isProcessing) return;
 
@@ -410,12 +409,12 @@ const GameBuild = ({ isWalletConnected = false, sendTransaction }) => {
         })
       );
 
-      // Send transaction
+    
       const txSig = await sendTransaction(transaction, connection);
       console.log("Entry fee paid:", txSig);
       await connection.confirmTransaction(txSig);
 
-      // Start the game
+     
       setgamestate({ score: 0, lives: 3, isPlaying: true });
       setcurrentscreen("game");
     } catch (error) {
@@ -481,7 +480,7 @@ const GameBuild = ({ isWalletConnected = false, sendTransaction }) => {
     setcurrentscreen("gameOver");
   };
 
-  // Handle canvas resizing
+
   useEffect(() => {
     const handleResize = () => {
       if (!canvasRef.current) return;
@@ -489,7 +488,7 @@ const GameBuild = ({ isWalletConnected = false, sendTransaction }) => {
       canvasRef.current.width = rect.width;
       canvasRef.current.height = rect.height;
     };
-
+   
     window.addEventListener("resize", handleResize);
     return () => {
       window.removeEventListener("resize", handleResize);
@@ -505,29 +504,29 @@ const GameBuild = ({ isWalletConnected = false, sendTransaction }) => {
     setrewardStaus({ loading: true, success: false, error: null });
   
     try {
-      // Check for existing token
+
       let jwtoken = localStorage.getItem("gameToken");
       
-      // If no token exists, we need to login first
+
       if (!jwtoken) {
         try {
           console.log("No token found, attempting to login...");
           
-          // Create a unique message including timestamp to prevent replay attacks
+      
           const message = `Login to Fruity Slice Game: ${Date.now()}`;
           const encodedMessage = new TextEncoder().encode(message);
           
-          // Request user signature
+      
           console.log("Requesting signature from wallet...");
           const signatureBytes = await signMessage(encodedMessage);
           const signatureBase64 = Buffer.from(signatureBytes).toString('base64');
           
           console.log("Signature obtained, logging in...");
-          // Login and get token
+  
           await loginUser(publicKey.toString(), signatureBase64, message);
           console.log("Login successful, token stored in localStorage");
           
-          // Token is now stored in localStorage by loginUser function
+  
           jwtoken = localStorage.getItem("gameToken");
           
           if (!jwtoken) {
@@ -539,7 +538,7 @@ const GameBuild = ({ isWalletConnected = false, sendTransaction }) => {
         }
       }
       
-      // Now attempt to claim the reward with the token
+
       console.log("Attempting to transfer tokens...");
       const result = await transferTokens(publicKey.toString(), gamestate.score);
       

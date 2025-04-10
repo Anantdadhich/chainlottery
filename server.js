@@ -6,7 +6,7 @@ import rateLimit from 'express-rate-limit';
 import { Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, Transaction } from '@solana/web3.js';
 import jwt from "jsonwebtoken"
 import { ASSOCIATED_TOKEN_PROGRAM_ID, createAssociatedTokenAccountInstruction, createTransferInstruction, getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import crypto from "crypto"
+
 import nacl from 'tweetnacl';
 
 
@@ -54,7 +54,7 @@ function getSliceRewards(score, playerAddress) {
   }
   
   // Regular rewards based on score
-  if (score < 10) return 0 *LAMPORTS_PER_SOL; // Minimum score required
+  if (score < 10) return 0  // Minimum score required
   if (score < 20) return 0.005 *LAMPORTS_PER_SOL; // 0.005 tokens
   if (score < 50) return 0.01 *LAMPORTS_PER_SOL; // 0.01 tokens
   if (score < 100) return 0.03 *LAMPORTS_PER_SOL; // 0.03 tokens
@@ -101,7 +101,7 @@ return associatedtoken
   }
 }
 
-// login user logic
+
 function cleanExpiredNonces() {
   const now = Date.now();
   for (const [key, value] of noncestore.entries()) {
@@ -111,10 +111,10 @@ function cleanExpiredNonces() {
   }
 }
 
-// Clean expired nonces periodically
+
 setInterval(cleanExpiredNonces, 60000);
 
-// Login endpoint
+
 app.post('/api/login', async (req, res) => {
   try {
     const { walletAddress, signature, message } = req.body;
@@ -123,7 +123,7 @@ app.post('/api/login', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields: walletAddress, signature, or message' });
     }
     
-    // Validate wallet address format
+   
     try {
       new PublicKey(walletAddress);
     } catch (error) {
@@ -215,9 +215,9 @@ app.post("/api/transfer-tokens",async (req,res)=>{
     const amount=getSliceRewards(score,playerAddress);
 
     
-     if(amount <=0 ){
+    if(amount <=0 ){
       res.status(400).json({error:"not have good score to recive the tokens "})
-     } 
+    }
  
    // now we create player token account 
    const palyertokenAccount=await getorCreateAssociatedTokenAccount(player);
@@ -277,7 +277,7 @@ app.post("/api/transfer-tokens",async (req,res)=>{
 const noncestore=new Map()
 const EXPIRY_TIME_NOUNCE=5 * 60 *1000;
 
-
+/*
 app.post("/api/get-nonce",(req,res)=>{
   try {
     const requestauthtoken=req.headers["authorization"]
@@ -386,6 +386,7 @@ app.post("/api/verify-wallet",async(req,res)=>{
     console.log(error)
   }
 })
+  */
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

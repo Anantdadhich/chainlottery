@@ -3,9 +3,9 @@ import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 const BACKEND_URL = process.env.VITE_BACKEND || "http://localhost:3001";
 
-// Keep the reward calculation using LAMPORTS_PER_SOL for display purposes
+
 export const getSliceReward = (score) => {
-  if (score < 10) return 0; // Minimum score required
+  if (score < 10) return 0 ; 
   if (score < 20) return 0.005 * LAMPORTS_PER_SOL; // 0.005 tokens
   if (score < 50) return 0.01 * LAMPORTS_PER_SOL; // 0.01 tokens
   if (score < 100) return 0.03 * LAMPORTS_PER_SOL; // 0.03 tokens
@@ -18,8 +18,7 @@ export async function loginUser(walletAddress, signatureBase64, message) {
   
   try {
    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); 
+    
     
     const response = await fetch(`${BACKEND_URL}/api/login`, {
       method: "POST",
@@ -31,10 +30,10 @@ export async function loginUser(walletAddress, signatureBase64, message) {
         signature: signatureBase64,
         message
       }),
-      signal: controller.signal
+    
     });
     
-    clearTimeout(timeoutId);
+
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -70,9 +69,11 @@ export async function transferTokens(playerAddress, score) {
     
     console.log(`Attempting to transfer tokens for score: ${score} to address: ${playerAddress}`);
     
-    // Add timeout to the fetch to prevent hanging requests
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+     
+    const message = `CLAIM_REWARD-${Date.now()}`;
+  const encodedMessage = new TextEncoder().encode(message);
+  const signatureBytes = await signMessage(encodedMessage);
+  const signatureBase64 = Buffer.from(signatureBytes).toString("base64");
     
     const response = await fetch(`${BACKEND_URL}/api/transfer-tokens`, {
       method: "POST",
@@ -82,12 +83,14 @@ export async function transferTokens(playerAddress, score) {
       },
       body: JSON.stringify({ 
         playerAddress, 
-        score 
+        score ,
+        signature:signatureBase64,
+        message
       }),
       signal: controller.signal
     });
     
-    clearTimeout(timeoutId);
+ 
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
