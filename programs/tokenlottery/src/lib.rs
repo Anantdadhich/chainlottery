@@ -30,7 +30,7 @@ declare_id!("Fq7vmjuU79yXFSb8pPC14Mrw1yWH3rEPrPkWPhKbnMj7");
 pub const NAME: &str="Token Lottery";
 
 #[constant] 
-pub const URI:&str ="Token lottery url" ;
+pub const URI:&str ="https://www.google.com/imgres?q=token%20lottery&imgurl=https%3A%2F%2Fen.numista.com%2Fcatalogue%2Fphotos%2Fetats-unis%2F60636b7be2e158.58083820-original.jpg&imgrefurl=https%3A%2F%2Fen.numista.com%2Fcatalogue%2Fexonumia279980.html&docid=VZzTvturHjxCtM&tbnid=l6LtMjbeOnN3PM&vet=12ahUKEwjfkqfzo92MAxV7SGcHHZiPDJMQM3oECCwQAA..i&w=2363&h=2347&hcb=2&ved=2ahUKEwjfkqfzo92MAxV7SGcHHZiPDJMQM3oECCwQAA" ;
 
 #[constant]
 pub const SYMBOL:&str="lottery";
@@ -457,6 +457,8 @@ pub struct InitializeBuyTicket<'info> {
     )]
 
     pub token_lottery:Account<'info,TokenLottery> ,
+
+
     #[account(
         init,
         payer=payer,
@@ -486,8 +488,9 @@ pub struct InitializeBuyTicket<'info> {
      #[account(mut,
      seeds=[b"metadata",token_metadata_program.key().as_ref(),
      ticket_mint.key().as_ref()],
+ 
+     seeds::program=token_metadata_program.key(),
      bump,
-     seeds::program=token_metadata_program.key()
     )]
      pub metadata:UncheckedAccount<'info> ,
 
@@ -519,7 +522,7 @@ pub struct InitializeBuyTicket<'info> {
        seeds::program=token_metadata_program.key(),
     )]
 
-       pub collection_master_edition:UncheckedAccount<'info>,
+     pub collection_master_edition:UncheckedAccount<'info>,
 
 
 
@@ -533,7 +536,7 @@ pub struct InitializeBuyTicket<'info> {
     pub collection_mint:InterfaceAccount<'info,Mint> ,
 
 
-    pub associated_account_program:Program<'info,AssociatedToken>,
+    pub associated_token_program:Program<'info,AssociatedToken>,
     pub token_program:Interface<'info,TokenInterface>,
     pub system_program:Program<'info,System>,
     pub token_metadata_program:Program<'info,Metadata> ,

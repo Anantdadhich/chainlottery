@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-tokenlottery = "Fq7vmjuU79yXFSb8pPC14Mrw1yWH3rEPrPkWPhKbnMj7"
+token_lottery = "Fq7vmjuU79yXFSb8pPC14Mrw1yWH3rEPrPkWPhKbnMj7"
 
 [registry]
 url = "https://api.apr.dev"
@@ -16,4 +16,4 @@ cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "npx tsx create-codama-client.ts; npx tsx --test --no-warnings tests/*.ts"
+test = "npx ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
