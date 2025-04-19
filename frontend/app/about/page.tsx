@@ -15,7 +15,7 @@ export default function AboutPage() {
 
       <section className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto">
-          <h1 className="text-4xl font-bold mb-4 text-center gradient-text">About Charity Lottery</h1>
+          <h1 className="text-4xl font-bold mb-4 text-center gradient-text">About Chain Lottery</h1>
           <p className="text-xl text-center text-gray-400 mb-12 max-w-2xl mx-auto">
             A decentralized lottery on the Solana blockchain that combines the excitement of winning with the joy of
             giving back.
@@ -61,7 +61,7 @@ export default function AboutPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-center text-gray-300 mb-6">
-                  Charity Lottery aims to revolutionize charitable giving by making it fun, transparent, and accessible
+                  Chain Lottery aims to revolutionize charitable giving by making it fun, transparent, and accessible
                   to everyone. We believe in the power of blockchain technology to create a more equitable and
                   transparent world.
                 </p>
@@ -126,10 +126,10 @@ export default function AboutPage() {
 
               <AccordionItem value="item-6" className="border-b border-white/10">
                 <AccordionTrigger className="text-lg font-medium">
-                  What blockchain does Charity Lottery use?
+                  What blockchain does Chain Lottery use?
                 </AccordionTrigger>
                 <AccordionContent className="text-gray-400">
-                  Charity Lottery is built on the Solana blockchain, which offers fast, low-cost transactions and is
+                  Chain Lottery is built on the Solana blockchain, which offers fast, low-cost transactions and is
                   environmentally friendly. This allows us to maximize the amount that goes to charity and provide a
                   seamless user experience.
                 </AccordionContent>

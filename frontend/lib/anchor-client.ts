@@ -1,6 +1,11 @@
-import { Connection, PublicKey } from "@solana/web3.js"
+"use client"
+
+import { Connection, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from "@solana/web3.js"
 import { Program, AnchorProvider, BN } from "@project-serum/anchor"
 import { useAnchorWallet } from "@solana/wallet-adapter-react"
+import { useEffect, useState } from "react"
+import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from "@solana/spl-token"
+import { MPL_TOKEN_METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata"
 
 // This is a placeholder for the actual IDL
 // In a real application, you would import the IDL from a file
@@ -99,68 +104,94 @@ export const CHARITY_LOTTERY_IDL = {
   ],
 }
 
-// Program ID (replace with actual program ID)
-export const PROGRAM_ID = new PublicKey("11111111111111111111111111111111")
+// Program ID (replace with your local program ID)
+export const PROGRAM_ID = new PublicKey("9nKa1x4vcnDnPFAQm9VFCrWZgUR4HFyuK69L7kGgXXRC")
+
+interface LotteryData {
+  authority: PublicKey;
+  ticketPrice: BN;
+  startTime: BN;
+  endTime: BN;
+  participants: number;
+  winner: number;
+  winnerChosen: boolean;
+  tokenLotteryPot: BN;
+}
 
 // Helper function to create a program instance
 export function useCharityLotteryProgram() {
   const wallet = useAnchorWallet()
+  const [program, setProgram] = useState<Program | null>(null)
 
-  if (!wallet) return null
+  useEffect(() => {
+    if (!wallet) return
 
-  const connection = new Connection("https://api.devnet.solana.com", "confirmed")
+    try {
+      // Use localhost RPC endpoint
+      const connection = new Connection("http://localhost:8899", {
+        commitment: "confirmed",
+        confirmTransactionInitialTimeout: 60000,
+        disableRetryOnRateLimit: false,
+      })
 
-  const provider = new AnchorProvider(connection, wallet, { commitment: "confirmed" })
+      const provider = new AnchorProvider(connection, wallet, {
+        commitment: "confirmed",
+        preflightCommitment: "confirmed",
+      })
 
-  return new Program(CHARITY_LOTTERY_IDL as any, PROGRAM_ID, provider)
+      const prog = new Program(CHARITY_LOTTERY_IDL as any, PROGRAM_ID, provider)
+      setProgram(prog)
+    } catch (error) {
+      console.error("Error initializing Anchor program:", error)
+    }
+  }, [wallet])
+
+  return program
 }
 
-// Helper function to get lottery data - now always returns mock data for demo
-export async function getLotteryData(program: Program) {
+// Helper function to get lottery data
+export async function getLotteryData(program: Program): Promise<{ lotteryAccount: PublicKey; lotteryData: LotteryData } | null> {
   try {
-    // For demo purposes, always return mock data instead of trying to fetch real data
-    // This avoids the "Account does not exist" error
+    const [lotteryPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("token_lottery")],
+      program.programId
+    )
+
+    const lotteryAccount = await program.account.tokenLottery.fetch(lotteryPda) as {
+      authority: PublicKey;
+      price: BN;
+      lotteryStart: BN;
+      lotteryEnd: BN;
+      ticketNumber: BN;
+      winner: number;
+      winnerChosen: boolean;
+      tokenLotteryPot: BN;
+    }
+    
     return {
-      lotteryAccount: new PublicKey("11111111111111111111111111111111"),
+      lotteryAccount: lotteryPda,
       lotteryData: {
-        authority: program.provider.publicKey,
-        ticketPrice: new BN(1_000_000_000), // 1 SOL in lamports
-        startTime: new BN(Date.now() / 1000 - 86400), // 1 day ago
-        endTime: new BN(Date.now() / 1000 + 259200), // 3 days from now
-        participants: Array(25).fill(program.provider.publicKey), // 25 participants for a realistic prize pool
-        winner: null,
-        charityId: 1,
-        charityDonationPercentage: 10,
-        toNumber: function () {
-          return this
-        },
+        authority: lotteryAccount.authority,
+        ticketPrice: lotteryAccount.price,
+        startTime: lotteryAccount.lotteryStart,
+        endTime: lotteryAccount.lotteryEnd,
+        participants: lotteryAccount.ticketNumber.toNumber(),
+        winner: lotteryAccount.winner,
+        winnerChosen: lotteryAccount.winnerChosen,
+        tokenLotteryPot: lotteryAccount.tokenLotteryPot,
       },
     }
   } catch (error) {
     console.error("Error in getLotteryData:", error)
-    // Fallback mock data in case of any error
-    return {
-      lotteryAccount: new PublicKey("11111111111111111111111111111111"),
-      lotteryData: {
-        authority: program.provider.publicKey,
-        ticketPrice: new BN(1_000_000_000),
-        startTime: new BN(Date.now() / 1000 - 86400),
-        endTime: new BN(Date.now() / 1000 + 259200),
-        participants: Array(25).fill(program.provider.publicKey),
-        winner: null,
-        charityId: 1,
-        charityDonationPercentage: 10,
-        toNumber: function () {
-          return this
-        },
-      },
-    }
+    return null
   }
 }
 
 // Helper function to get charity vote accounts - now returns mock data
 export async function getCharityVotes(program: Program) {
   try {
+    console.log("Fetching charity votes (mock)...")
+
     // For demo purposes, return mock charity votes
     return [
       {
@@ -210,12 +241,112 @@ export async function getCharityVotes(program: Program) {
   }
 }
 
-// Helper function to buy tickets - now returns mock transaction
+// Helper function to buy tickets
 export async function buyTickets(program: Program, numTickets: number) {
   try {
-    // For demo purposes, return a mock transaction ID
-    console.log(`Mock buying ${numTickets} tickets`)
-    return "mock_transaction_id_" + Math.random().toString(36).substring(2, 15)
+    const [lotteryPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("token_lottery")],
+      program.programId
+    )
+
+    const [collectionMintPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("collection_mint")],
+      program.programId
+    )
+
+    const lotteryAccount = await program.account.tokenLottery.fetch(lotteryPda) as {
+      authority: PublicKey;
+      price: BN;
+      lotteryStart: BN;
+      lotteryEnd: BN;
+      ticketNumber: BN;
+      winner: number;
+      winnerChosen: boolean;
+      tokenLotteryPot: BN;
+    }
+    
+    const ticketNumber = lotteryAccount.ticketNumber
+    
+    const ticketNumberBytes = new Uint8Array(8)
+    ticketNumber.toArray("le", 8).forEach((byte, index) => {
+      ticketNumberBytes[index] = byte
+    })
+    
+    const [ticketMintPda] = PublicKey.findProgramAddressSync(
+      [ticketNumberBytes],
+      program.programId
+    )
+
+    if (!program.provider.publicKey) {
+      throw new Error("Wallet not connected")
+    }
+
+    const destination = await getAssociatedTokenAddress(
+      ticketMintPda,
+      program.provider.publicKey
+    )
+
+    const metadataProgramId = new PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID)
+
+    const [metadataPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("metadata"),
+        metadataProgramId.toBuffer(),
+        ticketMintPda.toBuffer(),
+      ],
+      metadataProgramId
+    )
+
+    const [masterEditionPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("metadata"),
+        metadataProgramId.toBuffer(),
+        ticketMintPda.toBuffer(),
+        Buffer.from("edition"),
+      ],
+      metadataProgramId
+    )
+
+    const [collectionMetadataPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("metadata"),
+        metadataProgramId.toBuffer(),
+        collectionMintPda.toBuffer(),
+      ],
+      metadataProgramId
+    )
+
+    const [collectionMasterEditionPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("metadata"),
+        metadataProgramId.toBuffer(),
+        collectionMintPda.toBuffer(),
+        Buffer.from("edition"),
+      ],
+      metadataProgramId
+    )
+
+    const tx = await program.methods
+      .buyTicket()
+      .accounts({
+        payer: program.provider.publicKey,
+        tokenLottery: lotteryPda,
+        ticketMint: ticketMintPda,
+        destination: destination,
+        metadata: metadataPda,
+        masterEdition: masterEditionPda,
+        collectionMetadata: collectionMetadataPda,
+        collectionMasterEdition: collectionMasterEditionPda,
+        collectionMint: collectionMintPda,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        tokenMetadataProgram: metadataProgramId,
+        rent: SYSVAR_RENT_PUBKEY,
+      })
+      .rpc()
+
+    return tx
   } catch (error) {
     console.error("Error buying tickets:", error)
     throw error
@@ -225,8 +356,12 @@ export async function buyTickets(program: Program, numTickets: number) {
 // Helper function to vote for a charity - now returns mock transaction
 export async function voteForCharity(program: Program, charityId: number) {
   try {
-    // For demo purposes, return a mock transaction ID
     console.log(`Mock voting for charity ID ${charityId}`)
+
+    // Simulate network delay for a more realistic experience
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    // For demo purposes, return a mock transaction ID
     return "mock_transaction_id_" + Math.random().toString(36).substring(2, 15)
   } catch (error) {
     console.error("Error voting for charity:", error)
@@ -237,8 +372,12 @@ export async function voteForCharity(program: Program, charityId: number) {
 // Helper function to claim prize - now returns mock transaction
 export async function claimPrize(program: Program) {
   try {
-    // For demo purposes, return a mock transaction ID
     console.log("Mock claiming prize")
+
+    // Simulate network delay for a more realistic experience
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    // For demo purposes, return a mock transaction ID
     return "mock_transaction_id_" + Math.random().toString(36).substring(2, 15)
   } catch (error) {
     console.error("Error claiming prize:", error)

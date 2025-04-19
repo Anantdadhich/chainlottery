@@ -8,7 +8,7 @@ import { WalletContextProvider } from "@/components/wallet-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Charity Lottery | Win Big, Give Back",
+  title: "Chain Lottery | Win Big, Give Back",
   description: "A decentralized lottery on Solana blockchain supporting charitable causes"
 }
 
@@ -27,6 +27,3 @@ export default function RootLayout({
     </html>
   )
 }
-
-
-import './globals.css'

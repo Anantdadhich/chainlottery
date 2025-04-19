@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import * as THREE from "three"
 import { useMobile } from "@/hooks/use-mobile"
 
@@ -12,8 +12,27 @@ interface LotteryBallProps {
 export default function LotteryBall({ prizePool, currency = "SOL" }: LotteryBallProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const isMobile = useMobile()
+  const [isLowPerformance, setIsLowPerformance] = useState(false)
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
+  const frameIdRef = useRef<number>(0)
 
   useEffect(() => {
+    // Check device performance
+    const checkPerformance = () => {
+      // Simple performance check - if mobile or low memory, use low performance mode
+      if (
+        isMobile ||
+        (navigator.deviceMemory && navigator.deviceMemory < 4) ||
+        /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      ) {
+        setIsLowPerformance(true)
+        return true
+      }
+      return false
+    }
+
+    const lowPerf = checkPerformance()
+
     if (!containerRef.current) return
 
     // Scene setup
@@ -28,21 +47,27 @@ export default function LotteryBall({ prizePool, currency = "SOL" }: LotteryBall
     )
     camera.position.z = 5
 
-    // Renderer setup
+    // Renderer setup with optimized settings
     const renderer = new THREE.WebGLRenderer({
-      antialias: true,
+      antialias: !lowPerf,
       alpha: true,
+      powerPreference: "high-performance",
     })
+    rendererRef.current = renderer
+
+    // Set pixel ratio based on performance mode
+    const pixelRatio = lowPerf ? 0.7 : Math.min(window.devicePixelRatio, 1.5)
+    renderer.setPixelRatio(pixelRatio)
     renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight)
     containerRef.current.appendChild(renderer.domElement)
 
-    // Create lottery ball
-    const ballGeometry = new THREE.SphereGeometry(1.5, 32, 32)
+    // Create lottery ball with reduced geometry for better performance
+    const ballGeometry = new THREE.SphereGeometry(1.5, lowPerf ? 12 : 24, lowPerf ? 12 : 24)
 
     // Create a canvas for the texture
     const canvas = document.createElement("canvas")
-    canvas.width = 512
-    canvas.height = 512
+    canvas.width = lowPerf ? 128 : 256
+    canvas.height = lowPerf ? 128 : 256
     const context = canvas.getContext("2d")
 
     if (context) {
@@ -67,7 +92,7 @@ export default function LotteryBall({ prizePool, currency = "SOL" }: LotteryBall
 
       // Add the prize text
       context.fillStyle = "#ffffff"
-      context.font = "bold 60px Arial"
+      context.font = `bold ${lowPerf ? 20 : 40}px Arial`
       context.textAlign = "center"
       context.textBaseline = "middle"
       context.fillText(`${prizePool} ${currency}`, canvas.width / 2, canvas.height / 2)
@@ -76,11 +101,12 @@ export default function LotteryBall({ prizePool, currency = "SOL" }: LotteryBall
       context.strokeStyle = "#ffffff"
       context.lineWidth = 2
       context.beginPath()
-      context.arc(canvas.width / 2, canvas.height / 2, 120, 0, Math.PI * 2)
+      context.arc(canvas.width / 2, canvas.height / 2, lowPerf ? 40 : 80, 0, Math.PI * 2)
       context.stroke()
 
-      // Add some stars or dots
-      for (let i = 0; i < 50; i++) {
+      // Add fewer stars/dots in low performance mode
+      const dotsCount = lowPerf ? 10 : 25
+      for (let i = 0; i < dotsCount; i++) {
         const x = Math.random() * canvas.width
         const y = Math.random() * canvas.height
         const radius = Math.random() * 3 + 1
@@ -95,7 +121,7 @@ export default function LotteryBall({ prizePool, currency = "SOL" }: LotteryBall
     // Create texture from canvas
     const texture = new THREE.CanvasTexture(canvas)
 
-    // Create material with the texture
+    // Create material with the texture - simpler material for low performance
     const ballMaterial = new THREE.MeshStandardMaterial({
       map: texture,
       roughness: 0.3,
@@ -112,31 +138,38 @@ export default function LotteryBall({ prizePool, currency = "SOL" }: LotteryBall
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
     scene.add(ambientLight)
 
-    // Add point light
+    // Add point lights - fewer in low performance mode
     const pointLight = new THREE.PointLight(0x00ff9d, 1, 100)
     pointLight.position.set(5, 5, 5)
     scene.add(pointLight)
 
-    // Add another point light
-    const pointLight2 = new THREE.PointLight(0x00c2ff, 1, 100)
-    pointLight2.position.set(-5, -5, 5)
-    scene.add(pointLight2)
+    // Add glow effect only if not in low performance mode
+    let glowMesh: THREE.Mesh | null = null
+    if (!lowPerf) {
+      const glowGeometry = new THREE.SphereGeometry(1.6, 24, 24)
+      const glowMaterial = new THREE.MeshBasicMaterial({
+        color: 0x00ff9d,
+        transparent: true,
+        opacity: 0.1,
+      })
+      glowMesh = new THREE.Mesh(glowGeometry, glowMaterial)
+      scene.add(glowMesh)
+    }
 
-    // Add glow effect
-    const glowGeometry = new THREE.SphereGeometry(1.6, 32, 32)
-    const glowMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00ff9d,
-      transparent: true,
-      opacity: 0.1,
-    })
-    const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial)
-    scene.add(glowMesh)
-
-    // Mouse movement effect
+    // Mouse movement effect with throttling
     let mouseX = 0
     let mouseY = 0
+    let lastMouseMoveTime = 0
 
     const handleMouseMove = (event: MouseEvent) => {
+      // Skip mouse handling in low performance mode
+      if (lowPerf) return
+
+      // Throttle mouse move events
+      const now = performance.now()
+      if (now - lastMouseMoveTime < 100) return // Only process every 100ms
+      lastMouseMoveTime = now
+
       const rect = containerRef.current?.getBoundingClientRect()
       if (!rect) return
 
@@ -144,44 +177,62 @@ export default function LotteryBall({ prizePool, currency = "SOL" }: LotteryBall
       mouseY = -((event.clientY - rect.top) / rect.height) * 2 + 1
     }
 
-    window.addEventListener("mousemove", handleMouseMove)
+    window.addEventListener("mousemove", handleMouseMove, { passive: true })
 
-    // Handle window resize
+    // Handle window resize with throttling
+    let resizeTimeout: NodeJS.Timeout | null = null
     const handleResize = () => {
-      if (!containerRef.current) return
+      if (resizeTimeout) clearTimeout(resizeTimeout)
 
-      camera.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight
-      camera.updateProjectionMatrix()
-      renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight)
+      resizeTimeout = setTimeout(() => {
+        if (!containerRef.current) return
+
+        camera.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight
+        camera.updateProjectionMatrix()
+        renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight)
+      }, 200)
     }
 
-    window.addEventListener("resize", handleResize)
+    window.addEventListener("resize", handleResize, { passive: true })
 
-    // Animation loop
+    // Animation loop with frame limiting
     const clock = new THREE.Clock()
+    let lastFrameTime = 0
+    const targetFPS = lowPerf ? 20 : 30
+    const frameInterval = 1 / targetFPS
 
     const animate = () => {
-      const elapsedTime = clock.getElapsedTime()
+      const currentTime = clock.getElapsedTime()
+      const deltaTime = currentTime - lastFrameTime
 
-      // Rotate ball
-      ballMesh.rotation.y = elapsedTime * 0.2
-      ballMesh.rotation.x = Math.sin(elapsedTime * 0.5) * 0.2
+      // Limit frame rate
+      if (deltaTime > frameInterval) {
+        lastFrameTime = currentTime - (deltaTime % frameInterval)
 
-      // Move ball based on mouse (if not mobile)
-      if (!isMobile) {
-        ballMesh.rotation.y += mouseX * 0.01
-        ballMesh.rotation.x += mouseY * 0.01
+        // Rotate ball (slower rotation for better performance)
+        ballMesh.rotation.y += lowPerf ? 0.005 : 0.01
+
+        if (!lowPerf) {
+          ballMesh.rotation.x = Math.sin(currentTime * 0.3) * 0.1
+
+          // Move ball based on mouse
+          ballMesh.rotation.y += mouseX * 0.005
+          ballMesh.rotation.x += mouseY * 0.005
+        }
+
+        // Animate glow if it exists
+        if (glowMesh) {
+          glowMesh.scale.set(
+            1 + Math.sin(currentTime) * 0.03,
+            1 + Math.sin(currentTime) * 0.03,
+            1 + Math.sin(currentTime) * 0.03,
+          )
+        }
+
+        renderer.render(scene, camera)
       }
 
-      // Animate glow
-      glowMesh.scale.set(
-        1 + Math.sin(elapsedTime) * 0.05,
-        1 + Math.sin(elapsedTime) * 0.05,
-        1 + Math.sin(elapsedTime) * 0.05,
-      )
-
-      renderer.render(scene, camera)
-      requestAnimationFrame(animate)
+      frameIdRef.current = requestAnimationFrame(animate)
     }
 
     animate()
@@ -190,10 +241,36 @@ export default function LotteryBall({ prizePool, currency = "SOL" }: LotteryBall
     return () => {
       window.removeEventListener("mousemove", handleMouseMove)
       window.removeEventListener("resize", handleResize)
+
+      if (frameIdRef.current) {
+        cancelAnimationFrame(frameIdRef.current)
+      }
+
       if (containerRef.current && renderer.domElement) {
         containerRef.current.removeChild(renderer.domElement)
       }
+
+      // Dispose of geometries and materials
+      ballGeometry.dispose()
+      ballMaterial.dispose()
+      if (glowMesh) {
+        if (glowMesh.geometry) glowMesh.geometry.dispose()
+        if (glowMesh.material instanceof THREE.Material) {
+          glowMesh.material.dispose()
+        } else if (Array.isArray(glowMesh.material)) {
+          glowMesh.material.forEach((material) => material.dispose())
+        }
+      }
+
+      // Clear scene
       scene.clear()
+
+      // Dispose renderer
+      renderer.dispose()
+      rendererRef.current = null
+
+      // Cancel any pending timeouts
+      if (resizeTimeout) clearTimeout(resizeTimeout)
     }
   }, [prizePool, currency, isMobile])
 

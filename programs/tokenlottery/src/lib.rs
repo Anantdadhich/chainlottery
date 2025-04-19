@@ -24,13 +24,13 @@ use anchor_spl::metadata::{
 
 use anchor_lang::system_program;
 //on chain address of our program  which is public key of our account  
-declare_id!("Fq7vmjuU79yXFSb8pPC14Mrw1yWH3rEPrPkWPhKbnMj7");
+declare_id!("9nKa1x4vcnDnPFAQm9VFCrWZgUR4HFyuK69L7kGgXXRC");
 
 #[constant]
 pub const NAME: &str="Token Lottery";
 
 #[constant] 
-pub const URI:&str ="https://www.google.com/imgres?q=token%20lottery&imgurl=https%3A%2F%2Fen.numista.com%2Fcatalogue%2Fphotos%2Fetats-unis%2F60636b7be2e158.58083820-original.jpg&imgrefurl=https%3A%2F%2Fen.numista.com%2Fcatalogue%2Fexonumia279980.html&docid=VZzTvturHjxCtM&tbnid=l6LtMjbeOnN3PM&vet=12ahUKEwjfkqfzo92MAxV7SGcHHZiPDJMQM3oECCwQAA..i&w=2363&h=2347&hcb=2&ved=2ahUKEwjfkqfzo92MAxV7SGcHHZiPDJMQM3oECCwQAA" ;
+pub const URI:&str ="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRMaBKekMHVc0HKM9AVj8EpXyZffxih6W-9lA&s" ;
 
 #[constant]
 pub const SYMBOL:&str="lottery";

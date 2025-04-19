@@ -20,7 +20,7 @@ export default function Navbar() {
               <div className="h-8 w-8 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center">
                 <span className="text-black font-bold">CL</span>
               </div>
-              <span className="ml-2 text-xl font-bold text-white">Charity Lottery</span>
+              <span className="ml-2 text-xl font-bold text-white">Chain Lottery</span>
             </Link>
           </div>
 

@@ -3,7 +3,7 @@ import * as sb from "@switchboard-xyz/on-demand";
 import { Program } from "@coral-xyz/anchor";
 import { TokenLottery } from "../target/types/token_lottery";
 import { TOKEN_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
-import {  getAssociatedTokenAddressSync } from "@solana/spl-token";
+import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 
 
 describe("token-lottery", () => {
@@ -19,8 +19,8 @@ describe("token-lottery", () => {
 
   
 
-  const program = anchor.workspace.tokenlottery as Program<TokenLottery>;
-  let switchboardprogram 
+  const program = anchor.workspace.TokenLottery as Program<TokenLottery>;
+  let switchboardprogram ;
   const rngkp=anchor.web3.Keypair.generate() ;
 
   const TOKEN_METADATA_PROGRAM_ID=new anchor.web3.PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
@@ -52,7 +52,7 @@ describe("token-lottery", () => {
 
      const computeinstruction =anchor.web3.ComputeBudgetProgram.setComputeUnitLimit(
       {
-        units:30000
+        units:300000
       }
      )
 
@@ -66,7 +66,7 @@ describe("token-lottery", () => {
         lastValidBlockHeight:blockhashcontext.lastValidBlockHeight,
         feePayer:wallet.payer.publicKey
       }
-    ).add(computeinstruction).add(priorityinstrcution).add(buyTicketix)
+    ).add(buyTicketix).add(computeinstruction).add(priorityinstrcution)
 
 
     const signature=await anchor.web3.sendAndConfirmTransaction(connection,transaction,[wallet.payer])
@@ -86,7 +86,7 @@ describe("token-lottery", () => {
 
     const mint=anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("collection_mint")] ,
-      program.programId
+      program.programId,
     )[0];
 
     const metadata=anchor.web3.PublicKey.findProgramAddressSync(
@@ -97,7 +97,7 @@ describe("token-lottery", () => {
 
 
     const masteredition=anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("metadata"),TOKEN_METADATA_PROGRAM_ID.toBuffer(),mint.toBuffer(),Buffer["edition"]],
+      [Buffer.from("metadata"),TOKEN_METADATA_PROGRAM_ID.toBuffer(),mint.toBuffer(),Buffer.from("edition")],
       TOKEN_METADATA_PROGRAM_ID
     )[0]
 
@@ -120,14 +120,14 @@ describe("token-lottery", () => {
 
     const blockhashcontext=await connection.getLatestBlockhash();
 
-
+    
     const tx=new anchor.web3.Transaction(
       {
         blockhash:blockhashcontext.blockhash,
         lastValidBlockHeight:blockhashcontext.lastValidBlockHeight,
         feePayer:wallet.payer.publicKey
       }
-    ).add(initConfigIx).add(initLottery)
+    ).add(initConfigIx).add(initLottery);
 
     const signature=await anchor.web3.sendAndConfirmTransaction(connection,tx,[wallet.payer]);
     console.log(signature)
@@ -146,16 +146,18 @@ describe("token-lottery", () => {
     await buyTicket()
    })
    
+          
+
    it("is commiting a reveal a winner",async()=>{
-    const queue=new anchor.web3.PublicKey("")
+    const queue=new anchor.web3.PublicKey("A43DyUGA7s8eXPxqEjJY6EBu1KKbNgfxF8h17VAHn13w");
     const queueaccount=new sb.Queue(switchboardprogram,queue);
 
    console.log("queue account",queue.toString());
 
    try {
-    await queueaccount.loadData()
+    await queueaccount.loadData();
    } catch (error) {
-console.log("error not found")
+console.log("queue account not found")
 process.exit(1)
    }
     const [randomness,ix]=await sb.Randomness.create(switchboardprogram,rngkp,queue);
@@ -252,8 +254,7 @@ console.log("reveal signature ",revealsignature);
    it("is claiming a prize",async()=>{
 
     const tokenlotteryaddress=anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("token_lottery"),
-      ],
+      [Buffer.from("token_lottery")],
       program.programId
     )[0]
 
