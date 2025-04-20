@@ -31,14 +31,13 @@ interface LotteryHistory {
 export default function DashboardPage() {
   const { connected, publicKey } = useWallet()
   const program = useCharityLotteryProgram()
-
   const [donationData, setDonationData] = useState<DonationData[]>([
-    { charity: "Global Education Fund", amount: 25, percentage: 40, color: "#00ff9d" },
-    { charity: "Ocean Conservation", amount: 15, percentage: 24, color: "#00c2ff" },
-    { charity: "Hunger Relief", amount: 12, percentage: 19, color: "#9d00ff" },
-    { charity: "Medical Research", amount: 10, percentage: 17, color: "#ff00c2" },
+    { charity: "Global Education Fund", amount: 25, percentage: 40, color: "#4CAF50" },
+    { charity: "Ocean Conservation", amount: 15, percentage: 24, color: "#2196F3" },    
+    { charity: "Hunger Relief", amount: 12, percentage: 19, color: "#FF9800" },         
+    { charity: "Medical Research", amount: 10, percentage: 17, color: "#E91E63" },      
   ])
-
+  
   const [lotteryHistory, setLotteryHistory] = useState<LotteryHistory[]>([
     {
       id: 1,
@@ -305,7 +304,7 @@ function DonationGlobe({ donationData }: { donationData: DonationData[] }) {
 
     // Camera setup
     const camera = new THREE.PerspectiveCamera(
-      75,
+      80,
       containerRef.current.clientWidth / containerRef.current.clientHeight,
       0.1,
       1000,
@@ -321,9 +320,9 @@ function DonationGlobe({ donationData }: { donationData: DonationData[] }) {
     containerRef.current.appendChild(renderer.domElement)
 
     // Create globe
-    const globeGeometry = new THREE.SphereGeometry(2, 32, 32)
+    const globeGeometry = new THREE.SphereGeometry(3, 33, 33)
     const globeMaterial = new THREE.MeshPhongMaterial({
-      color: 0x222222,
+      color: 0x00c2ff,
       transparent: true,
       opacity: 0.8,
       wireframe: true,
@@ -336,8 +335,8 @@ function DonationGlobe({ donationData }: { donationData: DonationData[] }) {
       // Create a point for each donation
       const pointGeometry = new THREE.SphereGeometry(
         (donation.percentage / 100) * 0.5, // Size based on percentage
-        16,
-        16,
+        18,
+        18,
       )
       const pointMaterial = new THREE.MeshBasicMaterial({
         color: new THREE.Color(donation.color),
@@ -350,9 +349,9 @@ function DonationGlobe({ donationData }: { donationData: DonationData[] }) {
       const phi = Math.acos(-1 + (2 * index) / donationData.length)
       const theta = Math.sqrt(donationData.length * Math.PI) * phi
 
-      point.position.x = 2 * Math.cos(theta) * Math.sin(phi)
-      point.position.y = 2 * Math.sin(theta) * Math.sin(phi)
-      point.position.z = 2 * Math.cos(phi)
+      point.position.x = 3 * Math.cos(theta) * Math.sin(phi)
+      point.position.y = 3 * Math.sin(theta) * Math.sin(phi)
+      point.position.z = 3 * Math.cos(phi)
 
       scene.add(point)
 

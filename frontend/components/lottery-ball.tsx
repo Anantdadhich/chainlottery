@@ -22,7 +22,8 @@ export default function LotteryBall({ prizePool, currency = "SOL" }: LotteryBall
       // Simple performance check - if mobile or low memory, use low performance mode
       if (
         isMobile ||
-        (navigator.deviceMemory && navigator.deviceMemory < 4) ||
+        //@ts-ignore
+        (navigator.deviceMemory  && navigator.deviceMemory < 4) ||
         /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
       ) {
         setIsLowPerformance(true)

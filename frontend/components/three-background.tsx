@@ -19,6 +19,7 @@ export default function ThreeBackground() {
       // Simple performance check - if mobile or low memory, use low performance mode
       if (
         isMobile ||
+        //@ts-ignore
         (navigator.deviceMemory && navigator.deviceMemory < 4) ||
         /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
       ) {

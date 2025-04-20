@@ -7,8 +7,7 @@ import { useEffect, useState } from "react"
 import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from "@solana/spl-token"
 import { MPL_TOKEN_METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata"
 
-// This is a placeholder for the actual IDL
-// In a real application, you would import the IDL from a file
+
 export const CHARITY_LOTTERY_IDL = {
   version: "0.1.0",
   name: "charity_lottery",
@@ -104,7 +103,7 @@ export const CHARITY_LOTTERY_IDL = {
   ],
 }
 
-// Program ID (replace with your local program ID)
+
 export const PROGRAM_ID = new PublicKey("9nKa1x4vcnDnPFAQm9VFCrWZgUR4HFyuK69L7kGgXXRC")
 
 interface LotteryData {
