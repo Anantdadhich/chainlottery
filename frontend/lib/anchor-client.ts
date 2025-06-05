@@ -1,197 +1,108 @@
-"use client"
 
-import { Connection, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from "@solana/web3.js"
-import { Program, AnchorProvider, BN } from "@project-serum/anchor"
-import { useAnchorWallet } from "@solana/wallet-adapter-react"
-import { useEffect, useState } from "react"
-import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from "@solana/spl-token"
-import { MPL_TOKEN_METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata"
+import { Connection, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
+import { Program, AnchorProvider, BN } from "@coral-xyz/anchor";      
+import { useAnchorWallet } from "@solana/wallet-adapter-react";
+import { useEffect, useState } from "react";
+import {
+  getAssociatedTokenAddress,
+  TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
+import { MPL_TOKEN_METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
 
-
-export const CHARITY_LOTTERY_IDL = {
-  version: "0.1.0",
-  name: "charity_lottery",
-  instructions: [
-    {
-      name: "initializeLottery",
-      accounts: [
-        { name: "lottery", isMut: true, isSigner: false },
-        { name: "authority", isMut: true, isSigner: true },
-        { name: "systemProgram", isMut: false, isSigner: false },
-      ],
-      args: [
-        { name: "ticketPrice", type: "u64" },
-        { name: "duration", type: "u64" },
-      ],
-    },
-    {
-      name: "buyTicket",
-      accounts: [
-        { name: "lottery", isMut: true, isSigner: false },
-        { name: "buyer", isMut: true, isSigner: true },
-        { name: "poolTokenAccount", isMut: true, isSigner: false },
-        { name: "systemProgram", isMut: false, isSigner: false },
-        { name: "tokenProgram", isMut: false, isSigner: false },
-      ],
-      args: [{ name: "numTickets", type: "u32" }],
-    },
-    {
-      name: "voteCharity",
-      accounts: [
-        { name: "charityVote", isMut: true, isSigner: false },
-        { name: "voter", isMut: true, isSigner: true },
-        { name: "systemProgram", isMut: false, isSigner: false },
-      ],
-      args: [{ name: "charityId", type: "u8" }],
-    },
-    {
-      name: "drawWinner",
-      accounts: [
-        { name: "lottery", isMut: true, isSigner: false },
-        { name: "authority", isMut: true, isSigner: true },
-      ],
-      args: [],
-    },
-    {
-      name: "claimPrize",
-      accounts: [
-        { name: "lottery", isMut: true, isSigner: false },
-        { name: "winner", isMut: true, isSigner: true },
-        { name: "poolTokenAccount", isMut: true, isSigner: false },
-        { name: "winnerTokenAccount", isMut: true, isSigner: false },
-        { name: "tokenProgram", isMut: false, isSigner: false },
-      ],
-      args: [],
-    },
-  ],
-  accounts: [
-    {
-      name: "Lottery",
-      type: {
-        kind: "struct",
-        fields: [
-          { name: "authority", type: "publicKey" },
-          { name: "ticketPrice", type: "u64" },
-          { name: "startTime", type: "i64" },
-          { name: "endTime", type: "i64" },
-          { name: "participants", type: { vec: "publicKey" } },
-          { name: "winner", type: { option: "publicKey" } },
-          { name: "charityId", type: "u8" },
-          { name: "charityDonationPercentage", type: "u8" },
-        ],
-      },
-    },
-    {
-      name: "CharityVote",
-      type: {
-        kind: "struct",
-        fields: [
-          { name: "charityId", type: "u8" },
-          { name: "voteCount", type: "u32" },
-          { name: "name", type: "string" },
-          { name: "description", type: "string" },
-        ],
-      },
-    },
-  ],
-  errors: [
-    { code: 6000, name: "LotteryNotActive", msg: "Lottery is not active" },
-    { code: 6001, name: "LotteryNotEnded", msg: "Lottery has not ended yet" },
-    { code: 6002, name: "NotWinner", msg: "You are not the winner" },
-    { code: 6003, name: "NotAuthority", msg: "You are not the authority" },
-    { code: 6004, name: "InvalidCharityId", msg: "Invalid charity ID" },
-  ],
-}
+import { getTokenLotteryProgram, getTokenLotteryProgramId } from "./anchor";
+import type { TokenLottery } from "../../target/types/token_lottery";
 
 
-export const PROGRAM_ID = new PublicKey("9nKa1x4vcnDnPFAQm9VFCrWZgUR4HFyuK69L7kGgXXRC")
+export const PROGRAM_ID = getTokenLotteryProgramId("devnet");
+
 
 interface LotteryData {
   authority: PublicKey;
-  ticketPrice: BN;
-  startTime: BN;
-  endTime: BN;
-  participants: number;
+  price: BN;
+  lotteryStart: BN;
+  lotteryEnd: BN;
+  ticketNumber: BN;
   winner: number;
   winnerChosen: boolean;
   tokenLotteryPot: BN;
+  charityId?: BN;
 }
 
-// Helper function to create a program instance
-export function useCharityLotteryProgram() {
-  const wallet = useAnchorWallet()
-  const [program, setProgram] = useState<Program | null>(null)
+ 
+export function useCharityLotteryProgram(): Program<TokenLottery> | null {
+  const wallet = useAnchorWallet();
+  const [program, setProgram] = useState<Program<TokenLottery> | null>(null);
 
   useEffect(() => {
-    if (!wallet) return
+    if (!wallet) return;
 
     try {
-      // Use localhost RPC endpoint
+
       const connection = new Connection("http://localhost:8899", {
         commitment: "confirmed",
         confirmTransactionInitialTimeout: 60000,
-        disableRetryOnRateLimit: false,
-      })
+      });
 
+    
       const provider = new AnchorProvider(connection, wallet, {
         commitment: "confirmed",
         preflightCommitment: "confirmed",
-      })
+      });
 
-      const prog = new Program(CHARITY_LOTTERY_IDL as any, PROGRAM_ID, provider)
-      setProgram(prog)
-    } catch (error) {
-      console.error("Error initializing Anchor program:", error)
+      // 3) Build a typed Program<TokenLottery>
+      const prog = getTokenLotteryProgram(provider);
+      //@ts-ignore
+      setProgram(prog);
+    } catch (err) {
+      console.error("Error initializing Anchor program:", err);
     }
-  }, [wallet])
+  }, [wallet]);
 
-  return program
+  return program;
 }
 
-// Helper function to get lottery data
-export async function getLotteryData(program: Program): Promise<{ lotteryAccount: PublicKey; lotteryData: LotteryData } | null> {
+
+export async function getLotteryData(
+  program: Program<TokenLottery>
+): Promise<{ lotteryAccount: PublicKey; lotteryData: LotteryData } | null> {
   try {
+    // Derive PDA for [ "token_lottery" ]
     const [lotteryPda] = PublicKey.findProgramAddressSync(
       [Buffer.from("token_lottery")],
       program.programId
-    )
+    );
 
-    const lotteryAccount = await program.account.tokenLottery.fetch(lotteryPda) as {
-      authority: PublicKey;
-      price: BN;
-      lotteryStart: BN;
-      lotteryEnd: BN;
-      ticketNumber: BN;
-      winner: number;
-      winnerChosen: boolean;
-      tokenLotteryPot: BN;
-    }
-    
+    // Because we used Program<TokenLottery>, TS knows `tokenLottery` exists:
+    const rawAccount = await program.account.tokenLottery.fetch(lotteryPda);
+    const lotteryAccount = rawAccount as unknown as LotteryData;
+
     return {
       lotteryAccount: lotteryPda,
-      lotteryData: {
-        authority: lotteryAccount.authority,
-        ticketPrice: lotteryAccount.price,
-        startTime: lotteryAccount.lotteryStart,
-        endTime: lotteryAccount.lotteryEnd,
-        participants: lotteryAccount.ticketNumber.toNumber(),
-        winner: lotteryAccount.winner,
-        winnerChosen: lotteryAccount.winnerChosen,
-        tokenLotteryPot: lotteryAccount.tokenLotteryPot,
-      },
-    }
-  } catch (error) {
-    console.error("Error in getLotteryData:", error)
-    return null
+      lotteryData: lotteryAccount,
+    };
+  } catch (err) {
+    console.error("Error in getLotteryData:", err);
+    return null;
   }
 }
 
-// Helper function to get charity vote accounts - now returns mock data
-export async function getCharityVotes(program: Program) {
+export async function getCharityVotes(
+  program: Program<TokenLottery>
+): Promise<
+  Array<{
+    publicKey: PublicKey;
+    account: {
+      charityId: number;
+      voteCount: BN;
+      name: string;
+      description: string;
+      toNumber: () => number;
+    };
+  }>
+> {
   try {
-    console.log("Fetching charity votes (mock)...")
-
-    // For demo purposes, return mock charity votes
+    console.log("Fetching charity votes (mock)...");
     return [
       {
         publicKey: new PublicKey("11111111111111111111111111111111"),
@@ -233,59 +144,59 @@ export async function getCharityVotes(program: Program) {
           toNumber: () => 64,
         },
       },
-    ]
+    ];
   } catch (error) {
-    console.error("Error fetching charity votes:", error)
-    return []
+    console.error("Error fetching charity votes:", error);
+    return [];
   }
 }
 
-// Helper function to buy tickets
-export async function buyTickets(program: Program, numTickets: number) {
+export async function buyTickets(
+  program: Program<TokenLottery>,
+  numTickets: number
+): Promise<string> {
   try {
+ 
     const [lotteryPda] = PublicKey.findProgramAddressSync(
       [Buffer.from("token_lottery")],
       program.programId
-    )
+    );
+
 
     const [collectionMintPda] = PublicKey.findProgramAddressSync(
       [Buffer.from("collection_mint")],
       program.programId
-    )
+    );
 
-    const lotteryAccount = await program.account.tokenLottery.fetch(lotteryPda) as {
-      authority: PublicKey;
-      price: BN;
-      lotteryStart: BN;
-      lotteryEnd: BN;
-      ticketNumber: BN;
-      winner: number;
-      winnerChosen: boolean;
-      tokenLotteryPot: BN;
-    }
+   
+    const rawAccount = await program.account.tokenLottery.fetch(lotteryPda);
+    const lotteryAccount = rawAccount as unknown as LotteryData;
+
     
-    const ticketNumber = lotteryAccount.ticketNumber
-    
-    const ticketNumberBytes = new Uint8Array(8)
-    ticketNumber.toArray("le", 8).forEach((byte, index) => {
-      ticketNumberBytes[index] = byte
-    })
-    
+    const ticketNumberBytes = new Uint8Array(8);
+    lotteryAccount.ticketNumber.toArray("le", 8).forEach((b, i) => {
+      ticketNumberBytes[i] = b;
+    });
+
+
     const [ticketMintPda] = PublicKey.findProgramAddressSync(
       [ticketNumberBytes],
       program.programId
-    )
+    );
+
 
     if (!program.provider.publicKey) {
-      throw new Error("Wallet not connected")
+      throw new Error("Wallet not connected");
     }
+
 
     const destination = await getAssociatedTokenAddress(
       ticketMintPda,
       program.provider.publicKey
-    )
+    );
 
-    const metadataProgramId = new PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID)
+    
+    const metadataProgramId = new PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID);
 
     const [metadataPda] = PublicKey.findProgramAddressSync(
       [
@@ -294,8 +205,7 @@ export async function buyTickets(program: Program, numTickets: number) {
         ticketMintPda.toBuffer(),
       ],
       metadataProgramId
-    )
-
+    );
     const [masterEditionPda] = PublicKey.findProgramAddressSync(
       [
         Buffer.from("metadata"),
@@ -304,8 +214,9 @@ export async function buyTickets(program: Program, numTickets: number) {
         Buffer.from("edition"),
       ],
       metadataProgramId
-    )
+    );
 
+   
     const [collectionMetadataPda] = PublicKey.findProgramAddressSync(
       [
         Buffer.from("metadata"),
@@ -313,8 +224,7 @@ export async function buyTickets(program: Program, numTickets: number) {
         collectionMintPda.toBuffer(),
       ],
       metadataProgramId
-    )
-
+    );
     const [collectionMasterEditionPda] = PublicKey.findProgramAddressSync(
       [
         Buffer.from("metadata"),
@@ -323,15 +233,17 @@ export async function buyTickets(program: Program, numTickets: number) {
         Buffer.from("edition"),
       ],
       metadataProgramId
-    )
+    );
 
-    const tx = await program.methods
-      .buyTicket()
+ 
+    const txSignature = await program.methods
+      .buyTicket()  
       .accounts({
         payer: program.provider.publicKey,
+        //@ts-ignore
         tokenLottery: lotteryPda,
         ticketMint: ticketMintPda,
-        destination: destination,
+        destination,
         metadata: metadataPda,
         masterEdition: masterEditionPda,
         collectionMetadata: collectionMetadataPda,
@@ -343,43 +255,23 @@ export async function buyTickets(program: Program, numTickets: number) {
         tokenMetadataProgram: metadataProgramId,
         rent: SYSVAR_RENT_PUBKEY,
       })
-      .rpc()
+      .rpc();
 
-    return tx
-  } catch (error) {
-    console.error("Error buying tickets:", error)
-    throw error
+    return txSignature;
+  } catch (err) {
+    console.error("Error buying tickets:", err);
+    throw err;
   }
 }
 
-// Helper function to vote for a charity - now returns mock transaction
-export async function voteForCharity(program: Program, charityId: number) {
+
+export async function claimPrize(program: Program<TokenLottery>): Promise<string> {
   try {
-    console.log(`Mock voting for charity ID ${charityId}`)
-
-    // Simulate network delay for a more realistic experience
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    // For demo purposes, return a mock transaction ID
-    return "mock_transaction_id_" + Math.random().toString(36).substring(2, 15)
+    console.log("Mock claiming prize");
+    await new Promise((r) => setTimeout(r, 1000));
+    return "mock_tx_" + Math.random().toString(36).substring(2, 12);
   } catch (error) {
-    console.error("Error voting for charity:", error)
-    throw error
-  }
-}
-
-// Helper function to claim prize - now returns mock transaction
-export async function claimPrize(program: Program) {
-  try {
-    console.log("Mock claiming prize")
-
-    // Simulate network delay for a more realistic experience
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    // For demo purposes, return a mock transaction ID
-    return "mock_transaction_id_" + Math.random().toString(36).substring(2, 15)
-  } catch (error) {
-    console.error("Error claiming prize:", error)
-    throw error
+    console.error("Error claiming prize:", error);
+    throw error;
   }
 }
