@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Logs
 logs
 *.log
@@ -23,3 +24,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+=======
+.anchor
+.DS_Store
+target
+**/*.rs.bk
+node_modules
+test-ledger
+.yarn
+/app1
+>>>>>>> 47dada4727c260762e7c26fa8747109a660537ae
